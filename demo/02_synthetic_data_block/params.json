@@ -11,7 +11,8 @@
     "01p5": {
       "center": "R04",
       "ring": ["R01", "R02", "R03"],
-      "methods": ["cca", "v", "h0", "h1"]
+      "methods": ["cca"],
+      "methods_bak": ["cca", "v", "h0", "h1"]
     }
   },
   "FK": {

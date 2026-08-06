@@ -24,17 +24,19 @@ class GSPACArrayConfig:
         methods = tuple(
             dict.fromkeys(str(method).lower() for method in raw.get("methods", ()))
         )
-        if not center:
-            raise ValueError(f"GSPAC array {name!r} requires a center receiver")
         if not ring:
             raise ValueError(f"GSPAC array {name!r} requires ring receivers")
-        if center in ring:
+        if center and center in ring:
             raise ValueError(f"GSPAC array {name!r} includes its center in the ring")
         unknown = set(methods) - {"cca", "v", "h0", "h1"}
         if unknown:
             raise ValueError(f"Unknown GSPAC methods for {name!r}: {sorted(unknown)}")
         if not methods:
             raise ValueError(f"GSPAC array {name!r} requires at least one method")
+        if any(method != "cca" for method in methods) and not center:
+            raise ValueError(
+                f"GSPAC array {name!r} requires a center receiver for V/H0/H1"
+            )
         return cls(center=center, ring=ring, methods=methods)
 
 

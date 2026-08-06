@@ -31,6 +31,7 @@ class ReceiverSpectra:
     """Segment spectra and metadata for one receiver."""
 
     location: SiteLocation
+    segments: NDArray[np.float64]
     spectra: NDArray[np.complex128]
     normalized_rms: NDArray[np.float64]
 
@@ -44,6 +45,7 @@ class SpectralStatistics:
     power: NDArray[np.float64]
     cross: NDArray[np.complex128]
     valid_segments: NDArray[np.int64]
+    time_histories: NDArray[np.float64] | None = None
 
 
 def smooth(values: NDArray[np.generic], iterations: int) -> NDArray[np.generic]:
@@ -100,9 +102,9 @@ class Preprocessor:
         windowed = segment_array * np.hanning(self.segment_length)
         # The C++ implementation uses the positive-exponent DFT.
         spectra = np.conj(np.fft.rfft(windowed, axis=2)) / self.segment_length
-        return ReceiverSpectra(location, spectra, segment_rms), np.concatenate(
-            time_steps
-        )
+        return ReceiverSpectra(
+            location, segment_array, spectra, segment_rms
+        ), np.concatenate(time_steps)
 
     def run(
         self,
@@ -157,7 +159,12 @@ class Preprocessor:
                         values, smoothing_iterations
                     )
         self._write_outputs(receivers, frequency, power, cross, robust_normalization)
-        return SpectralStatistics(frequency, locations, power, cross, valid)
+        time_histories = np.stack(
+            [receiver.segments[:, valid, :] for receiver in receivers]
+        )
+        return SpectralStatistics(
+            frequency, locations, power, cross, valid, time_histories
+        )
 
     def _write_outputs(
         self,

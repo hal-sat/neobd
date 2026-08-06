@@ -75,6 +75,10 @@ FK outputs are separated into `results_neobd/fk/MLM/` and
 `results_neobd/fk/BFM/`. GSPAC outputs are grouped under
 `results_neobd/gspac/<method>/`.
 
+CCA uses only ring receivers and estimates the circle center from their
+coordinates. A `center` receiver is required only for V, H0, and H1. Circular
+spectra are written below `results_neobd/circular_statistics/<array>/`.
+
 ## FK visualization
 
 ```console

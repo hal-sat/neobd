@@ -20,6 +20,7 @@ RESULT_SUBDIRECTORIES = (
     "reports",
     "spectra",
     "statistics",
+    "circular_statistics",
     "spac",
     "gspac",
     "fk",
@@ -63,7 +64,12 @@ class AnalysisPipeline:
             run_spac(statistics, self.config.case_dir, self.config.spac_arrays)
             self.reporter("SPAC completed")
         if self.config.gspac_arrays:
-            run_gspac(statistics, self.config.case_dir, self.config.gspac_arrays)
+            run_gspac(
+                statistics,
+                self.config.case_dir,
+                self.config.gspac_arrays,
+                self.config.smoothing_iterations,
+            )
             self.reporter("GSPAC completed")
         if self.config.fk is not None:
             run_fk(statistics, self.config.case_dir, self.config.fk, self.config.n_para)
