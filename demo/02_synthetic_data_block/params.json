@@ -1,0 +1,25 @@
+{
+  "seg_len": 2048,
+  "n_smoothing": 10,
+  "acceptance_range": 0.15,
+  "robust_normalization": true,
+  "SPAC": {
+    "03p0":["R01", "R02", "R02", "R03", "R03", "R01"],
+    "01p5":["R04", "R01", "R04", "R02", "R04", "R03"]
+  }, 
+  "GSPAC": {
+    "01p5": {
+      "center": "R04",
+      "ring": ["R01", "R02", "R03"],
+      "methods": ["cca", "v", "h0", "h1"]
+    }
+  },
+  "FK": {
+    "methods": ["mlm", "bfm"],
+    "diagonal_loading": 0.02,
+    "output_interval": 10,
+    "max_frequency": 15,
+    "density": [200, 36],
+    "bounds": [100, 1500]
+  }
+}

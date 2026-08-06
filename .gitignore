@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+.venv/
+venv/
+
+# Generated results
+results_neobd/
+valid_segments.csv
+
+# Private files
+private/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store

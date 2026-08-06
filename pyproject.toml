@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neobd"
+version = "0.1.0"
+description = "Pure Python microtremor array processing with SPAC and FK analysis"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Harusato Kimura" }]
+dependencies = ["numpy>=1.23", "scipy>=1.9"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+visualization = ["matplotlib>=3.7"]
+
+[project.scripts]
+neobd = "neobd.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neobd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+

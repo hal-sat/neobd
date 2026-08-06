@@ -1,0 +1,6 @@
+-1.500000, 0.000000, R01
+1.500000, 0.000000, R02
+0.000000, 2.59800, R03
+0.000000, 0.86600, R04
+# If the record label refers to a directory, 
+# read the block data within that directory
