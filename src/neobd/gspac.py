@@ -12,7 +12,8 @@ from scipy.special import j0, j1
 
 from .config import GSPACArrayConfig
 from .io import write_complex, write_real
-from .preprocess import SpectralStatistics, smooth
+from .preprocess import SpectralStatistics
+from .smoothing import SmoothingConfig, create_smoother
 
 RatioModel = Callable[[NDArray[np.float64] | float], NDArray[np.float64] | float]
 
@@ -154,9 +155,10 @@ def _circle_processes(
 def _circular_statistics(
     statistics: SpectralStatistics,
     config: GSPACArrayConfig,
-    smoothing_iterations: int,
+    smoothing: SmoothingConfig,
 ) -> CircularStatistics:
     process0, process1, center, radius = _circle_processes(statistics, config)
+    smoother = create_smoother(smoothing)
     window = np.hanning(process0.shape[-1])
     spectrum0 = _positive_dft(process0 * window)
     spectrum1 = _positive_dft(process1 * window)
@@ -169,9 +171,9 @@ def _circular_statistics(
     def spectral_density(
         first: NDArray[np.complex128], second: NDArray[np.complex128]
     ) -> NDArray[np.complex128]:
-        return smooth(
+        return smoother.apply(
             np.mean(np.conj(first) * second, axis=0) * scale,
-            smoothing_iterations,
+            statistics.frequency,
         )
 
     g00 = spectral_density(spectrum0, spectrum0)
@@ -232,11 +234,11 @@ def run_gspac(
     statistics: SpectralStatistics,
     case_dir: Path,
     arrays: dict[str, GSPACArrayConfig],
-    smoothing_iterations: int = 0,
+    smoothing: SmoothingConfig = SmoothingConfig(),
 ) -> None:
     """Calculate circular statistics, spectral ratios, and phase velocities."""
     for name, config in arrays.items():
-        circular = _circular_statistics(statistics, config, smoothing_iterations)
+        circular = _circular_statistics(statistics, config, smoothing)
         _write_circular_statistics(case_dir, name, circular)
         ratios = _spectral_ratios(circular)
         for method in config.methods:

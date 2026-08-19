@@ -21,6 +21,7 @@ from .selection import (
     read_valid_segments,
     write_valid_segments,
 )
+from .smoothing import SmoothingConfig, create_smoother
 
 
 COMPONENTS = ("UD", "NS", "EW")
@@ -46,18 +47,6 @@ class SpectralStatistics:
     cross: NDArray[np.complex128]
     valid_segments: NDArray[np.int64]
     time_histories: NDArray[np.float64] | None = None
-
-
-def smooth(values: NDArray[np.generic], iterations: int) -> NDArray[np.generic]:
-    result = values.copy()
-    for _ in range(iterations):
-        previous = result.copy()
-        result[..., 1:-1] = (
-            0.25 * previous[..., :-2]
-            + 0.5 * previous[..., 1:-1]
-            + 0.25 * previous[..., 2:]
-        )
-    return result
 
 
 class Preprocessor:
@@ -109,7 +98,7 @@ class Preprocessor:
     def run(
         self,
         locations: tuple[SiteLocation, ...],
-        smoothing_iterations: int,
+        smoothing: SmoothingConfig,
         robust_normalization: bool,
         selector: SegmentSelector | None = None,
         acceptance_range: float = 0.2,
@@ -135,11 +124,12 @@ class Preprocessor:
         if reporter is not None:
             reporter(f"{valid.size}/{shape[1]} segments selected")
         frequency = np.fft.rfftfreq(self.segment_length, dt)
+        smoother = create_smoother(smoothing)
         stack = np.stack([receiver.spectra[:, valid, :] for receiver in receivers])
         scale = 8.0 * self.segment_length * dt
-        power = smooth(
+        power = smoother.apply(
             np.mean(np.abs(stack) ** 2, axis=2).transpose(1, 0, 2) * scale,
-            smoothing_iterations,
+            frequency,
         )
         cross = np.empty(
             (shape[0], len(receivers), len(receivers), frequency.size),
@@ -155,9 +145,7 @@ class Preprocessor:
                         )
                         * scale
                     )
-                    cross[component, first, second] = smooth(
-                        values, smoothing_iterations
-                    )
+                    cross[component, first, second] = smoother.apply(values, frequency)
         self._write_outputs(receivers, frequency, power, cross, robust_normalization)
         time_histories = np.stack(
             [receiver.segments[:, valid, :] for receiver in receivers]

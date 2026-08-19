@@ -21,6 +21,19 @@ Set the shared process count at the top level:
 "n_para": 4
 ```
 
+Choose frequency-domain smoothing with either a Parzen bandwidth in hertz or
+the number of repeated three-point Hann passes:
+
+```json
+"smoothing": {"type": "Parzen", "params": [0.3]}
+```
+
+```json
+"smoothing": {"type": "Hann_3point", "params": [7]}
+```
+
+The legacy `"n_smoothing": 7` form remains equivalent to `Hann_3point`.
+
 ## Analysis settings
 
 ```json

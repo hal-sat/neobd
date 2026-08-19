@@ -4,6 +4,7 @@ import numpy as np
 
 from neobd.io import SiteLocation
 from neobd.preprocess import Preprocessor
+from neobd.smoothing import SmoothingConfig
 
 
 def _write_block(path: Path, time: np.ndarray) -> None:
@@ -28,7 +29,7 @@ def test_block_input_uses_median_of_all_positive_time_steps(tmp_path: Path) -> N
 
     statistics = Preprocessor(tmp_path, segment_length=4).run(
         (SiteLocation("R01", 0.0, 0.0),),
-        smoothing_iterations=0,
+        smoothing=SmoothingConfig.hann_3point(0),
         robust_normalization=True,
     )
 

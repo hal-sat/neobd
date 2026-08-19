@@ -53,7 +53,7 @@ class AnalysisPipeline:
         locations = read_coordinates(self.config.case_dir)
         statistics = Preprocessor(self.config.case_dir, self.config.segment_length).run(
             locations,
-            self.config.smoothing_iterations,
+            self.config.smoothing,
             self.config.robust_normalization,
             self.selector,
             self.config.acceptance_range,
@@ -68,7 +68,7 @@ class AnalysisPipeline:
                 statistics,
                 self.config.case_dir,
                 self.config.gspac_arrays,
-                self.config.smoothing_iterations,
+                self.config.smoothing,
             )
             self.reporter("GSPAC completed")
         if self.config.fk is not None:

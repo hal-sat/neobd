@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .smoothing import SmoothingConfig
+
 
 @dataclass(frozen=True)
 class GSPACArrayConfig:
@@ -195,7 +197,7 @@ class AnalysisConfig:
 
     path: Path
     segment_length: int = 1024
-    smoothing_iterations: int = 0
+    smoothing: SmoothingConfig = field(default_factory=SmoothingConfig)
     acceptance_range: float = 0.2
     robust_normalization: bool = True
     spac_arrays: dict[str, tuple[str, ...]] = field(default_factory=dict)
@@ -219,6 +221,18 @@ class AnalysisConfig:
         segment_length = int(raw.get("seg_len", 1024))
         if segment_length < 2 or segment_length & (segment_length - 1):
             raise ValueError("seg_len must be a power of two greater than one")
+        legacy_keys = [key for key in ("n_smoothing", "n_smooth") if key in raw]
+        if len(legacy_keys) > 1:
+            raise ValueError("Specify only one legacy smoothing key")
+        if "smoothing" in raw and legacy_keys:
+            raise ValueError("Specify either smoothing or n_smoothing, not both")
+        if "smoothing" in raw:
+            smoothing = SmoothingConfig.from_raw(raw["smoothing"])
+        else:
+            legacy_value = float(raw[legacy_keys[0]]) if legacy_keys else 0.0
+            if not legacy_value.is_integer():
+                raise ValueError("n_smoothing must be an integer")
+            smoothing = SmoothingConfig.hann_3point(int(legacy_value))
         spac = {
             str(name): tuple(str(site) for site in sites)
             for name, sites in raw.get("SPAC", {}).items()
@@ -230,7 +244,7 @@ class AnalysisConfig:
         return cls(
             path=config_path,
             segment_length=segment_length,
-            smoothing_iterations=int(raw.get("n_smooth", raw.get("n_smoothing", 0))),
+            smoothing=smoothing,
             acceptance_range=float(raw.get("acceptance_range", 0.2)),
             robust_normalization=bool(raw.get("robust_normalization", True)),
             spac_arrays=spac,

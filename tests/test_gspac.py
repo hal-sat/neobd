@@ -15,6 +15,7 @@ from neobd.gspac import (
 )
 from neobd.io import SiteLocation
 from neobd.preprocess import SpectralStatistics
+from neobd.smoothing import SmoothingConfig
 
 
 def _statistics(include_center: bool = True) -> SpectralStatistics:
@@ -122,12 +123,15 @@ def test_cca_does_not_require_center_record_or_coordinate() -> None:
 def test_circular_statistics_are_smoothed_and_written(tmp_path: Path) -> None:
     config = GSPACArrayConfig("R04", ("R01", "R02", "R03"), ("cca", "v", "h0", "h1"))
     statistics = _statistics()
-    unsmoothed = _circular_statistics(statistics, config, 0)
-    smoothed = _circular_statistics(statistics, config, 1)
+    unsmoothed = _circular_statistics(
+        statistics, config, SmoothingConfig.hann_3point(0)
+    )
+    smoothing = SmoothingConfig.hann_3point(1)
+    smoothed = _circular_statistics(statistics, config, smoothing)
     assert not np.array_equal(unsmoothed.g00, smoothed.g00)
     assert set(_spectral_ratios(smoothed)) == {"cca", "v", "h0", "h1"}
 
-    run_gspac(statistics, tmp_path, {"01p5": config}, smoothing_iterations=1)
+    run_gspac(statistics, tmp_path, {"01p5": config}, smoothing)
     circular_output = tmp_path / "results_neobd" / "circular_statistics" / "01p5"
     for filename in ("G00.csv", "G11.csv", "Gcc.csv", "Gc0.csv"):
         path = circular_output / filename
