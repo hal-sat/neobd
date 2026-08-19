@@ -16,6 +16,23 @@ def test_mlm_stabilizes_non_hermitian_singular_matrix() -> None:
     assert np.all(np.isfinite(inverse))
 
 
+def test_mlm_power_is_invariant_to_cross_spectral_scale() -> None:
+    matrix = np.array([[2.0, 0.4 + 0.2j], [0.4 - 0.2j, 1.0]], dtype=complex)
+    steering = np.array([[1.0, 1.0], [1.0, 1.0j], [1.0, -1.0]], dtype=complex)
+    estimator = MLMEstimator(diagonal_loading=0.02)
+    reference = estimator.power(estimator.prepare(matrix), steering)
+    for scale in (1e-20, 1e20):
+        scaled = estimator.power(estimator.prepare(scale * matrix), steering)
+        np.testing.assert_allclose(scaled, reference, rtol=1e-12, atol=0.0)
+
+
+def test_mlm_rejects_a_zero_power_matrix() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="no usable power"):
+        MLMEstimator().prepare(np.zeros((2, 2), dtype=complex))
+
+
 def test_bfm_uses_hermitian_cross_spectral_matrix() -> None:
     matrix = np.array([[2.0, 1.0 + 0.2j], [1.0 - 0.1j, 2.0]], dtype=complex)
     prepared = BFMEstimator().prepare(matrix)

@@ -42,14 +42,12 @@ class MLMEstimator(FKEstimator):
         scale = max(float(np.trace(covariance).real / covariance.shape[0]), 0.0)
         if not np.isfinite(scale) or scale == 0.0:
             scale = float(np.linalg.norm(covariance, ord=2))
-        scale = max(scale, np.finfo(float).tiny)
-        loaded = covariance + self.diagonal_loading * scale * np.eye(
-            covariance.shape[0]
-        )
+        if not np.isfinite(scale) or scale <= np.finfo(float).tiny:
+            raise ValueError("Cross-spectral matrix has no usable power")
+        normalized = covariance / scale
+        loaded = normalized + self.diagonal_loading * np.eye(covariance.shape[0])
         eigenvalues, eigenvectors = np.linalg.eigh(loaded)
-        floor = max(
-            np.finfo(float).eps * covariance.shape[0] * scale, np.finfo(float).tiny
-        )
+        floor = np.finfo(float).eps * covariance.shape[0]
         eigenvalues = np.maximum(eigenvalues.real, floor)
         return (eigenvectors / eigenvalues) @ eigenvectors.conj().T
 
@@ -59,12 +57,15 @@ class MLMEstimator(FKEstimator):
         denominator = np.einsum(
             "...i,ij,...j->...", steering.conj(), prepared, steering
         ).real
-        floor = np.finfo(float).eps * max(float(np.max(np.abs(denominator))), 1.0)
+        scale = float(np.max(np.abs(denominator)))
+        if not np.isfinite(scale) or scale == 0.0:
+            return np.zeros_like(denominator)
+        floor = np.finfo(float).eps * scale
         return np.divide(
             1.0,
             denominator,
             out=np.zeros_like(denominator),
-            where=denominator > floor,
+            where=np.isfinite(denominator) & (denominator > floor),
         )
 
 
