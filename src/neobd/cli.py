@@ -53,6 +53,27 @@ def build_visualize_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def build_visualize_fv_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="neobd visualize-fv", description="Visualize an FK F-V spectrum"
+    )
+    parser.add_argument("file", help="Path to an fv.csv file")
+    parser.add_argument("--output", help="Optional image output path")
+    parser.add_argument(
+        "--no-show", action="store_true", help="Do not open an interactive window"
+    )
+    parser.add_argument(
+        "--db", action="store_true", help="Plot normalized power in decibels"
+    )
+    parser.add_argument(
+        "--min-db",
+        type=float,
+        default=-30.0,
+        help="Lower color limit for --db (default: -30)",
+    )
+    return parser
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     values = list(sys.argv[1:] if argv is None else argv)
     if values and values[0] == "visualize-fk":
@@ -61,6 +82,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         arguments = build_visualize_parser().parse_args(values[1:])
         destination = visualize_fk(
             arguments.file, arguments.output, not arguments.no_show, arguments.db
+        )
+        if destination is not None:
+            print(destination)
+        return 0
+    if values and values[0] == "visualize-fv":
+        from .fv_visualization import visualize_fv
+
+        arguments = build_visualize_fv_parser().parse_args(values[1:])
+        destination = visualize_fv(
+            arguments.file,
+            arguments.output,
+            not arguments.no_show,
+            arguments.db,
+            arguments.min_db,
         )
         if destination is not None:
             print(destination)

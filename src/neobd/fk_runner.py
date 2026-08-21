@@ -35,6 +35,7 @@ class FKResult:
     phases: NDArray[np.float64]
     amplitudes: NDArray[np.float64]
     power: NDArray[np.float64]
+    fv_power: NDArray[np.float64]
     optimum: NDArray[np.float64]
 
 
@@ -63,6 +64,11 @@ def _polar_points(parameters: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.column_stack((slowness * np.cos(angle), slowness * np.sin(angle)))
 
 
+def _velocity_grid(config: FKConfig) -> NDArray[np.float64]:
+    """Return the uniformly sampled phase velocities used by F-V output."""
+    return np.linspace(config.min_velocity, config.max_velocity, config.radial_density)
+
+
 def _solve_frequency(task: FKTask) -> FKResult | None:
     estimator = create_estimator(task.method, task.config.diagonal_loading)
     prepared = estimator.prepare(task.matrix)
@@ -74,6 +80,26 @@ def _solve_frequency(task: FKTask) -> FKResult | None:
     if not np.isfinite(maximum) or maximum <= 0:
         return None
     power /= maximum
+
+    velocity_grid = _velocity_grid(task.config)
+    fv_slow = 1.0 / velocity_grid[:, None]
+    fv_points = np.column_stack(
+        (
+            (fv_slow * np.cos(task.angle)).ravel(),
+            (fv_slow * np.sin(task.angle)).ravel(),
+        )
+    )
+    fv_power = estimator.power(
+        prepared, _steering(fv_points, task.coordinates, task.frequency)
+    ).reshape(velocity_grid.size, task.angle.size)
+    fv_maximum = float(np.max(fv_power))
+    if not np.isfinite(fv_maximum) or fv_maximum <= 0:
+        return None
+    fv_power = np.mean(fv_power / fv_maximum, axis=1)
+    profile_maximum = float(np.max(fv_power))
+    if not np.isfinite(profile_maximum) or profile_maximum <= 0:
+        return None
+    fv_power /= profile_maximum
 
     def objective(parameters: NDArray[np.float64]) -> NDArray[np.float64]:
         return -estimator.power(
@@ -114,6 +140,7 @@ def _solve_frequency(task: FKTask) -> FKResult | None:
         np.angle(coefficient),
         np.abs(coefficient),
         power,
+        fv_power,
         optimum,
     )
 
@@ -194,6 +221,13 @@ def _run_method(
             frequency,
             *np.asarray([result.amplitudes for result in results]).T,
         )
+    velocity = _velocity_grid(config)
+    write_real(
+        output / "fv.csv",
+        np.repeat(frequency, velocity.size),
+        np.tile(velocity, frequency.size),
+        np.asarray([result.fv_power for result in results]).reshape(-1),
+    )
 
 
 def run_fk(

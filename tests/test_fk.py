@@ -75,6 +75,12 @@ def test_run_fk_writes_mlm_and_bfm_directories(tmp_path: Path) -> None:
         output = tmp_path / "results_neobd" / "fk" / method
         assert (output / "phv_fk.csv").is_file()
         assert len(list(output.glob("FK_*.csv"))) == 2
+        fv = np.loadtxt(output / "fv.csv", delimiter=",", ndmin=2)
+        assert fv.shape == (10, 3)
+        np.testing.assert_allclose(np.unique(fv[:, 1]), np.linspace(100, 3500, 5))
+        assert np.all((fv[:, 2] >= 0) & (fv[:, 2] <= 1))
+        for frequency in np.unique(fv[:, 0]):
+            np.testing.assert_allclose(np.max(fv[fv[:, 0] == frequency, 2]), 1.0)
 
 
 def test_visualization_saves_only_when_output_is_requested(tmp_path: Path) -> None:
@@ -105,3 +111,38 @@ def test_visualization_saves_only_when_output_is_requested(tmp_path: Path) -> No
     assert result == destination.resolve()
     assert destination.is_file()
     assert PHASE_VELOCITIES == (100.0, 125.0, 250.0, 500.0, 750.0, 1000.0, 1500.0)
+
+
+def test_fv_visualization_saves_requested_output(tmp_path: Path) -> None:
+    import pytest
+
+    pytest.importorskip("matplotlib")
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from neobd.fv_visualization import _read_fv, _to_decibels, visualize_fv
+
+    frequency = np.array([1.0, 2.0, 3.0])
+    velocity = np.array([100.0, 200.0, 300.0, 400.0])
+    values = np.array(
+        [
+            [f, c, np.exp(-(((c - 100 * f) / 100) ** 2))]
+            for f in frequency
+            for c in velocity
+        ]
+    )
+    source = tmp_path / "fv.csv"
+    np.savetxt(source, values, delimiter=",")
+    loaded_frequency, loaded_velocity, power = _read_fv(source)
+    np.testing.assert_array_equal(loaded_frequency, frequency)
+    np.testing.assert_array_equal(loaded_velocity, velocity)
+    assert power.shape == (velocity.size, frequency.size)
+    power_db = _to_decibels(power, -20.0)
+    np.testing.assert_allclose(np.max(power_db, axis=0), 0.0)
+    assert np.min(power_db) == -20.0
+    destination = tmp_path / "fv.png"
+    result = visualize_fv(
+        source, destination, show=False, decibels=True, minimum_db=-20.0
+    )
+    assert result == destination.resolve()
+    assert destination.is_file()

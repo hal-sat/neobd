@@ -21,3 +21,10 @@ def test_cli_rejects_negative_parallelism() -> None:
     with patch("neobd.cli.run_analysis"):
         with pytest.raises(SystemExit):
             main(["params.json", "--npara=-1"])
+
+
+def test_cli_dispatches_fv_visualization(tmp_path) -> None:
+    output = tmp_path / "fv.png"
+    with patch("neobd.fv_visualization.visualize_fv", return_value=output) as visualize:
+        assert main(["visualize-fv", "fv.csv", "--output", str(output)]) == 0
+    visualize.assert_called_once_with("fv.csv", str(output), True, False, -30.0)

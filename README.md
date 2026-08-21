@@ -104,10 +104,16 @@ spectra are written below `results_neobd/circular_statistics/<array>/`.
 
 ```console
 neobd visualize-fk results_neobd/fk/MLM/FK_04p44410_Hz.csv
+neobd visualize-fv results_neobd/fk/MLM/fv.csv
+neobd visualize-fv results_neobd/fk/MLM/fv.csv --db --min-db=-30
 ```
 
 The command opens Matplotlib by default. Use `--output map.png` to save the
 figure, `--no-show` to suppress the window, or `--db` for decibels.
+
+Each FK method also writes `fv.csv`, containing frequency, uniformly spaced
+phase velocity, and azimuthally averaged power whose maximum is normalized to
+one at each frequency.
 
 ## Development
 
