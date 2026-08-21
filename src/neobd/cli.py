@@ -8,6 +8,13 @@ import sys
 from .pipeline import run_analysis
 
 
+def _nonnegative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be non-negative")
+    return parsed
+
+
 def build_run_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Process microtremor array observations"
@@ -17,6 +24,16 @@ def build_run_parser() -> argparse.ArgumentParser:
         "--keep-results",
         action="store_true",
         help="Do not remove existing result files",
+    )
+    parser.add_argument(
+        "--npara",
+        type=_nonnegative_int,
+        default=None,
+        metavar="N",
+        help=(
+            "Override n_para from params.json; use 0 for all available CPUs "
+            "(effective default: 1)"
+        ),
     )
     return parser
 
@@ -53,6 +70,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         arguments.params,
         replace_results=not arguments.keep_results,
         reporter=print,
+        n_para=arguments.npara,
     )
     return 0
 

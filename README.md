@@ -21,6 +21,14 @@ Set the shared process count at the top level:
 "n_para": 4
 ```
 
+Override it for one run with `--npara`; `0` uses all available CPUs. If neither
+the CLI option nor `n_para` is specified, one process is used.
+
+```console
+neobd path/to/params.json --npara=4
+neobd path/to/params.json --npara=0
+```
+
 Choose frequency-domain smoothing with either a Parzen bandwidth in hertz or
 the number of repeated three-point Hann passes:
 

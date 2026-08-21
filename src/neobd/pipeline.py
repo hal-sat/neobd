@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
+import os
 from pathlib import Path
 import shutil
 
@@ -86,8 +88,13 @@ def run_analysis(
     path: str | Path,
     replace_results: bool = True,
     reporter: Callable[[str], None] | None = None,
+    n_para: int | None = None,
 ) -> SpectralStatistics:
-    """Load a parameter file and execute all configured analyses."""
-    return AnalysisPipeline(AnalysisConfig.load(path), reporter=reporter).run(
-        replace_results
-    )
+    """Load parameters and execute analyses with an optional process override."""
+    config = AnalysisConfig.load(path)
+    if n_para is not None:
+        if n_para < 0:
+            raise ValueError("n_para must be non-negative")
+        effective_n_para = (os.cpu_count() or 1) if n_para == 0 else n_para
+        config = replace(config, n_para=effective_n_para)
+    return AnalysisPipeline(config, reporter=reporter).run(replace_results)
