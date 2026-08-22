@@ -30,10 +30,9 @@ def run_spac(
         radii = []
         for first, second in zip(sites[::2], sites[1::2]):
             i, j = index[first], index[second]
-            csd = statistics.cross[0, i, j]
-            coefficients.append(
-                csd / np.sqrt(statistics.power[0, i] * statistics.power[0, j])
-            )
+            if statistics.normalized_cross is None:
+                raise ValueError("SPAC requires normalized cross spectra")
+            coefficients.append(statistics.normalized_cross[0, i, j])
             radii.append(
                 float(
                     np.hypot(

@@ -47,6 +47,25 @@ class SpectralStatistics:
     cross: NDArray[np.complex128]
     valid_segments: NDArray[np.int64]
     time_histories: NDArray[np.float64] | None = None
+    normalized_cross: NDArray[np.complex128] | None = None
+
+
+def normalize_cross_spectra(
+    cross: NDArray[np.complex128],
+    power: NDArray[np.float64],
+    robust: bool,
+) -> NDArray[np.complex128]:
+    """Normalize CSDs for elastic-wave or attenuation analysis."""
+    if robust:
+        denominator = np.sqrt(power[:, :, None, :] * power[:, None, :, :])
+    else:
+        denominator = power[:, :, None, :]
+    return np.divide(
+        cross,
+        denominator,
+        out=np.full_like(cross, np.nan + 0j),
+        where=denominator > np.finfo(float).tiny,
+    )
 
 
 class Preprocessor:
@@ -146,12 +165,19 @@ class Preprocessor:
                         * scale
                     )
                     cross[component, first, second] = smoother.apply(values, frequency)
-        self._write_outputs(receivers, frequency, power, cross, robust_normalization)
+        normalized_cross = normalize_cross_spectra(cross, power, robust_normalization)
+        self._write_outputs(receivers, frequency, power, cross, normalized_cross)
         time_histories = np.stack(
             [receiver.segments[:, valid, :] for receiver in receivers]
         )
         return SpectralStatistics(
-            frequency, locations, power, cross, valid, time_histories
+            frequency,
+            locations,
+            power,
+            cross,
+            valid,
+            time_histories,
+            normalized_cross,
         )
 
     def _write_outputs(
@@ -160,7 +186,7 @@ class Preprocessor:
         frequency: NDArray[np.float64],
         power: NDArray[np.float64],
         cross: NDArray[np.complex128],
-        robust: bool,
+        normalized_cross: NDArray[np.complex128],
     ) -> None:
         result_dir = self.case_dir / "results_neobd"
         statistics_dir = result_dir / "statistics"
@@ -204,17 +230,11 @@ class Preprocessor:
                         frequency,
                         csd,
                     )
-                    if robust:
-                        ccf = csd / np.sqrt(
-                            power[component, first] * power[component, second]
-                        )
-                    else:
-                        ccf = csd / power[component, first]
                     write_complex(
                         statistics_dir
                         / f"CCF_{component_name}_{first_receiver.location.name}-{second_receiver.location.name}.csv",
                         frequency,
-                        ccf,
+                        normalized_cross[component, first, second],
                     )
         if cross.shape[0] == 3:
             for site_index, receiver in enumerate(receivers):
